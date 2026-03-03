@@ -7,10 +7,6 @@ Day 7 - Variables & Data Types Assignment
 def get_employee_data():
     """
     Collect employee financial details from user input.
-
-    Returns:
-        tuple: (name, annual_salary, tax_percentage,
-                monthly_rent, savings_percentage)
     """
     try:
         name = input("Enter employee name: ")
@@ -40,10 +36,7 @@ def validate_inputs(
     annual_salary, tax_percentage, monthly_rent, savings_percentage
 ):
     """
-    Validate all financial inputs.
-
-    Raises:
-        ValueError: If any input is invalid.
+    Validate financial inputs.
     """
     if annual_salary <= 0:
         raise ValueError("Annual salary must be greater than 0.")
@@ -62,10 +55,7 @@ def calculate_financials(
     annual_salary, tax_percentage, monthly_rent, savings_percentage
 ):
     """
-    Perform all financial calculations.
-
-    Returns:
-        dict: Dictionary containing calculated values.
+    Perform financial calculations.
     """
     monthly_salary = annual_salary / 12
     monthly_tax = monthly_salary * tax_percentage / 100
@@ -92,12 +82,57 @@ def calculate_financials(
     }
 
 
-def generate_report(name, annual_salary, data):
+def format_indian_currency(amount):
+    """
+    Format number into Indian numbering system (lakhs/crores).
+    Example: 2000000 -> 20,00,000.00
+    """
+    amount_str = f"{amount:.2f}"
+    integer_part, decimal_part = amount_str.split(".")
+
+    if len(integer_part) <= 3:
+        return f"{integer_part}.{decimal_part}"
+
+    last_three = integer_part[-3:]
+    remaining = integer_part[:-3]
+
+    parts = []
+    while len(remaining) > 2:
+        parts.insert(0, remaining[-2:])
+        remaining = remaining[:-2]
+
+    if remaining:
+        parts.insert(0, remaining)
+
+    indian_number = ",".join(parts) + "," + last_three
+    return f"{indian_number}.{decimal_part}"
+
+
+def calculate_health_score(data):
+    """
+    Calculate financial health score (0-100).
+    """
+    score = 0
+
+    rent_ratio = data["rent_ratio"]
+    savings_rate = (data["savings_amount"] / data["net_salary"]) * 100
+    disposable_rate = (data["disposable"] / data["net_salary"]) * 100
+
+    if rent_ratio < 30:
+        score += 30
+
+    if savings_rate >= 20:
+        score += 30
+
+    if disposable_rate >= 20:
+        score += 40
+
+    return score
+
+
+def generate_report(name, annual_salary, data, health_score):
     """
     Generate formatted financial summary report.
-
-    Returns:
-        str: Formatted financial report.
     """
     line = "═" * 44
     sub_line = "─" * 44
@@ -107,20 +142,22 @@ def generate_report(name, annual_salary, data):
 EMPLOYEE FINANCIAL SUMMARY
 {line}
 Employee : {name}
-Annual Salary : ₹{annual_salary:,.2f}
+Annual Salary : ₹{format_indian_currency(annual_salary)}
 {sub_line}
 Monthly Breakdown:
-Gross Salary : ₹ {data["monthly_salary"]:,.2f}
-Tax ({data["monthly_tax"] / data["monthly_salary"] * 100:.1f}%) : ₹ {data["monthly_tax"]:,.2f}
-Net Salary : ₹ {data["net_salary"]:,.2f}
-Rent : ₹ {data["total_rent"] / 12:,.2f} ({data["rent_ratio"]:.1f}% of net)
-Savings ({data["savings_amount"] / data["net_salary"] * 100:.1f}%) : ₹ {data["savings_amount"]:,.2f}
-Disposable : ₹ {data["disposable"]:,.2f}
+Gross Salary : ₹ {format_indian_currency(data["monthly_salary"])}
+Tax ({data["monthly_tax"] / data["monthly_salary"] * 100:.1f}%) : ₹ {format_indian_currency(data["monthly_tax"])}
+Net Salary : ₹ {format_indian_currency(data["net_salary"])}
+Rent : ₹ {format_indian_currency(data["total_rent"] / 12)} ({data["rent_ratio"]:.1f}% of net)
+Savings ({data["savings_amount"] / data["net_salary"] * 100:.1f}%) : ₹ {format_indian_currency(data["savings_amount"])}
+Disposable : ₹ {format_indian_currency(data["disposable"])}
 {sub_line}
 Annual Projection:
-Total Tax : ₹ {data["total_tax"]:,.2f}
-Total Savings : ₹ {data["total_savings"]:,.2f}
-Total Rent : ₹ {data["total_rent"]:,.2f}
+Total Tax : ₹ {format_indian_currency(data["total_tax"])}
+Total Savings : ₹ {format_indian_currency(data["total_savings"])}
+Total Rent : ₹ {format_indian_currency(data["total_rent"])}
+{sub_line}
+Financial Health Score : {health_score}/100
 {line}
 """
     return report
@@ -153,7 +190,12 @@ def main():
             savings_percentage,
         )
 
-        report = generate_report(name, annual_salary, financial_data)
+        health_score = calculate_health_score(financial_data)
+
+        report = generate_report(
+            name, annual_salary, financial_data, health_score
+        )
+
         print(report)
 
     except ValueError as error:
